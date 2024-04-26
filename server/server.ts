@@ -1,4 +1,5 @@
 import { app } from "./app"
+import connectDB from "./utils/db"
 require("dotenv").config()
 
 app.get("/", (req, res) => {
@@ -10,5 +11,6 @@ app.all("*", (req, res) => {
 })
 
 app.listen(process.env.PORT, () => {
+    connectDB()
     console.log(`Server running on port ${process.env.PORT}`)
 })
