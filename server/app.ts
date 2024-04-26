@@ -1,6 +1,7 @@
 import express from "express"
 import cors from "cors"
 import cookieParser from "cookie-parser"
+import ErrorMiddleware from "./middleware/error"
 require("dotenv").config()
 
 export const app = express()
@@ -10,3 +11,9 @@ app.use(cookieParser())
 app.use(cors({
     origin: process.env.ORIGIN_URL,
 }))
+app.use(ErrorMiddleware)
+
+
+app.all("*", (req, res) => {
+    res.status(404).json({ error: "Not found" })
+})
