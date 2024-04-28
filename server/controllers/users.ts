@@ -1,10 +1,8 @@
 import { Request, Response, NextFunction } from "express"
 import jwt, { Secret } from "jsonwebtoken"
-import ejs from "ejs"
-import userModel from "../models/users"
+import userModel, { IUser } from "../models/users"
 import ErrorHanlder from "../errors/ErrorHandler"
 import CatchAsyncError from "../middleware/catchAsyncError"
-import path from "path"
 import sendMail from "../utils/sendMail"
 require("dotenv").config()
 
@@ -72,3 +70,41 @@ export const createActivationToken = (user: IRegistrationBody): IActivationToken
 
     return { token, activationCode }
 }
+
+interface IActivationRequest {
+    activationToken: string
+    activationCode: string
+}
+
+export const activateUser = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { activationToken, activationCode } = req.body as IActivationRequest
+
+        const newUser: { user: IUser, activationCode: string } = jwt.verify(activationToken, process.env.ACTIVATION_TOKEN_SECRET as string) as { user: IUser, activationCode: string }
+
+        if (newUser.activationCode !== activationCode) {
+            return next(new ErrorHanlder("Invalid activation code", 400))
+        }
+
+        const { name, email, password } = newUser.user
+
+        const isEmailExist = await userModel.findOne({ email })
+
+        if (isEmailExist) {
+            return next(new ErrorHanlder("Email already exist", 400))
+        }
+
+        const user = await userModel.create({
+            name,
+            email,
+            password
+        })
+
+        res.status(201).json({
+            success: true,
+            message: "Account has been activated"
+        })
+    } catch (error: any) {
+        return next(new ErrorHanlder(error.message, 400))
+    }
+})
